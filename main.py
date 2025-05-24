@@ -1,8 +1,32 @@
 import pygame
 import sys
-from Recursos.Functions import iniciarJanela, carregarFonte, branco, preto, render_text_wrapped
+from Recursos.Functions import iniciarJanela, carregarFonte, branco, preto, render_text_wrapped, desenhar_botoes_som
+
+pygame.init()
+pygame.mixer.init()
+
+musicaAtiva = True
+pygame.mixer.music.load("Recursos/sons/Trilha sonora.mp3")
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1)
+
+
+def verificarCliqueSom(evento, somLigado):
+    if evento.type == pygame.MOUSEBUTTONDOWN:
+        if evento.button == 1:
+            posMouse = evento.pos
+            botaoSom = pygame.Rect(920, 20, 40, 40)
+            if botaoSom.collidepoint(posMouse):
+                if somLigado:
+                    pygame.mixer.music.pause()
+                else:
+                    pygame.mixer.music.unpause()
+                return not somLigado
+    return somLigado
+
 
 def telaInicial(tela):
+    global musicaAtiva
     fundoOriginal = pygame.image.load("Recursos/imagens/Menu celeiro dentro.png")
     fundo = pygame.transform.scale(fundoOriginal, (tela.get_width(), tela.get_height()))
     fonteTitulo = carregarFonte(36)
@@ -18,13 +42,14 @@ def telaInicial(tela):
     larguraCaixa = 600
     alturaCaixa = 100
     caixaMensagem = pygame.Surface((larguraCaixa, alturaCaixa), pygame.SRCALPHA)
-    caixaMensagem.fill((0, 0, 0, 150))  # Fundo escuro com transparência
+    caixaMensagem.fill((0, 0, 0, 150))
 
     while ativo:
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            musicaAtiva = verificarCliqueSom(evento, musicaAtiva)
             if evento.type == pygame.MOUSEBUTTONDOWN:
                 if inputBox.collidepoint(evento.pos):
                     corAtual = corAtiva
@@ -41,13 +66,10 @@ def telaInicial(tela):
 
         tela.blit(fundo, (0, 0))
 
-        # Posição centralizada para a mensagem
         xMsg = (tela.get_width() - larguraCaixa) // 2
         yMsg = 100
-
         tela.blit(caixaMensagem, (xMsg, yMsg))
 
-        # Sombra do texto
         textoSombra = fonteTitulo.render("Insira seu nome:", True, (0, 0, 0))
         sombraRect = textoSombra.get_rect(center=(tela.get_width() // 2 + 2, yMsg + alturaCaixa // 2 + 2))
         tela.blit(textoSombra, sombraRect)
@@ -56,23 +78,22 @@ def telaInicial(tela):
         textoRect = textoInstrucao.get_rect(center=(tela.get_width() // 2, yMsg + alturaCaixa // 2))
         tela.blit(textoInstrucao, textoRect)
 
-        # Sombra da caixa de entrada
         sombra = inputBox.move(4, 4)
         pygame.draw.rect(tela, (50, 50, 50), sombra, border_radius=10)
-
-        # Caixa branca arredondada
         pygame.draw.rect(tela, branco, inputBox, border_radius=10)
-
-        # Borda da caixa
         pygame.draw.rect(tela, corAtual, inputBox, 3, border_radius=10)
 
         texto = fonteInput.render(nomeJogador, True, preto)
         tela.blit(texto, (inputBox.x + 10, inputBox.y + 5))
 
+        # Botão de som
+        desenhar_botoes_som(tela, musicaAtiva)
+
         pygame.display.flip()
 
 
 def telaDeBoasVindas(tela, nomeJogador):
+    global musicaAtiva
     fundoOriginal = pygame.image.load("Recursos/imagens/Menu celeiro fora.png")
     fundo = pygame.transform.scale(fundoOriginal, (tela.get_width(), tela.get_height()))
     fonteTitulo = carregarFonte(48)
@@ -80,7 +101,6 @@ def telaDeBoasVindas(tela, nomeJogador):
     fonteBotao = carregarFonte(30)
 
     botaoStart = pygame.Rect(400, 600, 200, 50)
-
     posRetangulo = (50, 80)
     larguraRetangulo = 900
     alturaRetangulo = 350
@@ -98,13 +118,13 @@ def telaDeBoasVindas(tela, nomeJogador):
             if evento.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            elif evento.type == pygame.MOUSEBUTTONDOWN:
+            musicaAtiva = verificarCliqueSom(evento, musicaAtiva)
+            if evento.type == pygame.MOUSEBUTTONDOWN:
                 if botaoStart.collidepoint(evento.pos):
-                    return
+                    return  # Sai para iniciar a gameplay
 
         tela.blit(fundo, (0, 0))
 
-        # Caixa semitransparente atrás do texto
         s = pygame.Surface((larguraRetangulo, alturaRetangulo), pygame.SRCALPHA)
         s.fill((0, 0, 0, 180))
         tela.blit(s, posRetangulo)
@@ -119,12 +139,10 @@ def telaDeBoasVindas(tela, nomeJogador):
         )
 
         posRegras_y = posRetangulo[1] + 20 + alturaTexto + 20
-
         for i, linha in enumerate(regras):
             textoRegra = fonteRegras.render(linha, True, branco)
             tela.blit(textoRegra, (posRetangulo[0] + 20, posRegras_y + i * 30))
 
-        # Efeito de hover no botão
         corBotao = (0, 160, 0) if botaoStart.collidepoint(pygame.mouse.get_pos()) else (0, 128, 0)
         pygame.draw.rect(tela, corBotao, botaoStart, border_radius=12)
 
@@ -132,16 +150,43 @@ def telaDeBoasVindas(tela, nomeJogador):
         textoBotaoPos = textoBotao.get_rect(center=botaoStart.center)
         tela.blit(textoBotao, textoBotaoPos)
 
+        # Botão de som
+        desenhar_botoes_som(tela, musicaAtiva)
+
         pygame.display.flip()
+
+
+def gameplay(tela):
+    global musicaAtiva
+    clock = pygame.time.Clock()
+    fundo = pygame.Surface(tela.get_size())
+    fundo.fill((135, 206, 235))  # Céu azul como fundo base
+
+    rodando = True
+    while rodando:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            musicaAtiva = verificarCliqueSom(evento, musicaAtiva)
+
+        tela.blit(fundo, (0, 0))
+        desenhar_botoes_som(tela, musicaAtiva)
+        pygame.display.flip()
+        clock.tick(60)
 
 
 def main():
     tela = iniciarJanela()
+
     nomeJogador = telaInicial(tela)
     print(f"Jogador: {nomeJogador}")
+
     telaDeBoasVindas(tela, nomeJogador)
 
-    # Aqui pode continuar o jogo...
+    pygame.mixer.music.stop()
+
+    gameplay(tela)
 
     pygame.quit()
     sys.exit()

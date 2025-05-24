@@ -46,4 +46,9 @@ def render_text_wrapped(surface, text, font, color, pos, max_width, line_height=
     altura_total = len(lines) * line_height
     return altura_total
 
-
+def desenhar_botoes_som(tela, som_ativo, posicao=(920, 20)):
+    icone = pygame.image.load("Recursos/imagens/Audio_Sim-removebg-preview.png" if som_ativo else "Recursos/imagens/Audio_Não-removebg-preview.png")
+    icone = pygame.transform.scale(icone, (40, 40))
+    retangulo = icone.get_rect(topleft=posicao)
+    tela.blit(icone, retangulo)
+    return retangulo
