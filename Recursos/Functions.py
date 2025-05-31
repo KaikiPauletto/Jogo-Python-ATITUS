@@ -60,7 +60,38 @@ def hitbox_reduzida(rect, reducao_x=10, reducao_y=10):
     nova_y = rect.y + reducao_y // 2
     return pygame.Rect(nova_x, nova_y, nova_largura, nova_altura)
 
+def pausar_jogo(tela, fonte):
+    pausa = True
 
+    # Captura o frame atual da tela (congela a imagem)
+    tela_congelada = tela.copy()
+
+    texto_pausa = fonte.render("PAUSE", True, (255, 0, 0))
+    texto_rect = texto_pausa.get_rect(center=(tela.get_width() // 2, tela.get_height() // 2))
+
+    pygame.mixer.music.pause()
+
+    while pausa:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_SPACE:
+                    pausa = False
+                elif evento.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+
+        # Redesenha o último frame capturado
+        tela.blit(tela_congelada, (0, 0))
+        # Desenha a palavra "PAUSE" no centro
+        tela.blit(texto_pausa, texto_rect)
+
+        pygame.display.flip()
+        pygame.time.Clock().tick(10)
+
+    pygame.mixer.music.unpause()
 
 
 

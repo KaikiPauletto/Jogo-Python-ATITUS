@@ -5,6 +5,8 @@ import math
 
 from Recursos.Functions import iniciarJanela, carregarFonte, branco, preto, render_text_wrapped, desenhar_botoes_som
 from Recursos.Functions import hitbox_reduzida
+from Recursos.Functions import pausar_jogo
+
 
 pygame.init()
 pygame.mixer.init()
@@ -164,6 +166,9 @@ def gameplay(tela):
     global musicaAtiva
     clock = pygame.time.Clock()
 
+    # No começo da função gameplay, crie a fonte pequena:
+    fonte_pequena = pygame.font.SysFont("arial", 16)  # Fonte menor para a mensagem
+
     # Carregar imagens
     porquinho_img = pygame.image.load("Recursos/imagens/Porquinho.png").convert_alpha()
     moeda1_img = pygame.image.load("Recursos/imagens/Moeda 1.png").convert_alpha()
@@ -171,6 +176,8 @@ def gameplay(tela):
     dinheiro5_img = pygame.image.load("Recursos/imagens/Dinheiro 5.png").convert_alpha()
     martelo_img = pygame.image.load("Recursos/imagens/Martelo.png").convert_alpha()
     fundoOriginal = pygame.image.load("Recursos/imagens/Cenário 2.jpg")
+    passaro_img = pygame.image.load("Recursos/imagens/Passaro-removebg-preview.png").convert_alpha()
+    
 
     # Redimensionar imagens se quiser (exemplo: manter escala proporcional)
     porquinho_img = pygame.transform.scale(porquinho_img, (140, 110))
@@ -179,9 +186,18 @@ def gameplay(tela):
     dinheiro5_img = pygame.transform.scale(dinheiro5_img, (80, 80))
     martelo_img = pygame.transform.scale(martelo_img, (80, 80))
     fundo = pygame.transform.scale(fundoOriginal, (tela.get_width(), tela.get_height()))
+    passaro_img = pygame.transform.scale(passaro_img, (60, 60))  # tamanho pequeno
+
+    # Centro do círculo onde o passarinho vai voar
+    passaro_centro_x = tela.get_width() // 2
+    passaro_centro_y = 150  # um pouco no topo da tela, ajusta depois se quiser
+
+    passaro_raio = 100  # raio do círculo do voo
+    passaro_angulo = 0  # ângulo inicial
+    passaro_angulo_velocidade = 0.02  # velocidade do movimento circular
 
     # Player
-    player_rect = porquinho_img.get_rect(midbottom=(tela.get_width()//2, tela.get_height() - 10))
+    player_rect = porquinho_img.get_rect(midbottom=(tela.get_width()//2, tela.get_height() - 70))
     player_speed = 10
 
     # Listas de itens e obstáculos
@@ -199,6 +215,8 @@ def gameplay(tela):
     # Pontuação e vidas
     score = 0
     vidas = 3
+    dano_tomado = 0
+
 
     fonte = carregarFonte(30)
 
@@ -212,12 +230,24 @@ def gameplay(tela):
     while rodando:
         clock.tick(60)
         for evento in pygame.event.get():
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_SPACE:
+                    pausar_jogo(tela, fonte)
+
             if evento.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             musicaAtiva = verificarCliqueSom(evento, musicaAtiva)
 
         tela.blit(fundo, (0, 0))
+        
+        passaro_angulo += passaro_angulo_velocidade
+        if passaro_angulo > 2 * math.pi:
+            passaro_angulo -= 2 * math.pi
+
+        passaro_x = passaro_centro_x + passaro_raio * math.cos(passaro_angulo)
+        passaro_y = passaro_centro_y + passaro_raio * math.sin(passaro_angulo)
+        passaro_rect = passaro_img.get_rect(center=(passaro_x, passaro_y))
 
         # Movimento do player
         keys = pygame.key.get_pressed()
@@ -274,12 +304,25 @@ def gameplay(tela):
             obs.y += velocidade_obstaculo
             if hitbox_reduzida(obs).colliderect(hitbox_reduzida(player_rect, 20, 10)):
                 vidas -= 1
+                dano_tomado = 12
                 obstaculos.remove(obs)
             elif obs.top > tela.get_height():
                 obstaculos.remove(obs)
 
         # Desenha player
         tela.blit(porquinho_img, player_rect)
+        if dano_tomado > 0:
+            porquinho_tingido = porquinho_img.copy()
+            # Pinta os pixels visíveis da imagem com vermelho mantendo a transparência
+            tint_surface = pygame.Surface(porquinho_img.get_size(), pygame.SRCALPHA)
+            tint_surface.fill((255, 0, 0, 120))  # vermelho semi-transparente
+            porquinho_tingido.blit(tint_surface, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            tela.blit(porquinho_tingido, player_rect)
+            dano_tomado -= 1
+        else:
+            tela.blit(porquinho_img, player_rect)
+
+
 
         # Desenha itens
         for item in itens:
@@ -298,12 +341,19 @@ def gameplay(tela):
         # Botão de som
         desenhar_botoes_som(tela, musicaAtiva)
 
-            # Sol pulsante (círculo amarelo no canto superior direito)
+        # Sol pulsante (círculo amarelo no canto superior direito)
         tempo += 0.05
         raio_sol = int(raio_base + amplitude * math.sin(tempo))
         pos_sol = (tela.get_width() - 120, 100)  # Posição do sol com margem
 
         pygame.draw.circle(tela, (255, 255, 0), pos_sol, raio_sol)
+
+        tela.blit(passaro_img, passaro_rect)
+
+        mensagem_pausa = "Press Space To Pause Game"
+        texto_pausa = fonte_pequena.render(mensagem_pausa, True, (0, 0, 0))  # cor preta, pode mudar
+        texto_rect = texto_pausa.get_rect(center=(tela.get_width() // 2, 65))  # 20 px do topo
+        tela.blit(texto_pausa, texto_rect)
 
         pygame.display.flip()
 
