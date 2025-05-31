@@ -1,4 +1,6 @@
 import pygame
+import datetime
+import sys
 
 # Função que será usada várias vezes para carregar fontes
 def carregarFonte(tamanho=20):
@@ -92,6 +94,32 @@ def pausar_jogo(tela, fonte):
         pygame.time.Clock().tick(10)
 
     pygame.mixer.music.unpause()
+
+def registrar_resultado(nome, pontuacao, caminho_log="log.dat"):
+    agora = datetime.datetime.now()
+    horario = agora.strftime("%H:%M:%S")
+    with open(caminho_log, "a", encoding="utf-8") as arquivo:
+        arquivo.write(f"Nome: {nome}\nPontuação: {pontuacao:.1f}\nData: {horario}\n\n")
+
+def ler_ultimos_registros(caminho_log="log.dat", n=5):
+    try:
+        with open(caminho_log, "r", encoding="utf-8") as arquivo:
+            linhas = arquivo.read().strip().split("\n\n")
+            ultimos = linhas[-n:]
+            registros = []
+            for entrada in ultimos:
+                partes = entrada.strip().split("\n")
+                if len(partes) == 3:
+                    nome = partes[0].split(":", 1)[1].strip()
+                    pontos = partes[1].split(":", 1)[1].strip()
+                    horario = partes[2].split(":", 1)[1].strip()
+                    registros.append((nome, pontos, horario))
+            return registros
+    except FileNotFoundError:
+        return []
+
+
+
 
 
 

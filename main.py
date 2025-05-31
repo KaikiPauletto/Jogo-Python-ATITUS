@@ -6,6 +6,9 @@ import math
 from Recursos.Functions import iniciarJanela, carregarFonte, branco, preto, render_text_wrapped, desenhar_botoes_som
 from Recursos.Functions import hitbox_reduzida
 from Recursos.Functions import pausar_jogo
+from Recursos.Functions import registrar_resultado
+from Recursos.Functions import registrar_resultado, ler_ultimos_registros
+
 
 
 pygame.init()
@@ -162,7 +165,7 @@ def telaDeBoasVindas(tela, nomeJogador):
         pygame.display.flip()
 
 
-def gameplay(tela):
+def gameplay(tela, nomeJogador):
     global musicaAtiva
     clock = pygame.time.Clock()
 
@@ -180,11 +183,11 @@ def gameplay(tela):
     
 
     # Redimensionar imagens se quiser (exemplo: manter escala proporcional)
-    porquinho_img = pygame.transform.scale(porquinho_img, (140, 110))
-    moeda1_img = pygame.transform.scale(moeda1_img, (80, 80))
-    moeda50_img = pygame.transform.scale(moeda50_img, (80, 80))
-    dinheiro5_img = pygame.transform.scale(dinheiro5_img, (80, 80))
-    martelo_img = pygame.transform.scale(martelo_img, (80, 80))
+    porquinho_img = pygame.transform.scale(porquinho_img, (120, 90))
+    moeda1_img = pygame.transform.scale(moeda1_img, (60, 60))
+    moeda50_img = pygame.transform.scale(moeda50_img, (60, 60))
+    dinheiro5_img = pygame.transform.scale(dinheiro5_img, (60, 60))
+    martelo_img = pygame.transform.scale(martelo_img, (60, 60))
     fundo = pygame.transform.scale(fundoOriginal, (tela.get_width(), tela.get_height()))
     passaro_img = pygame.transform.scale(passaro_img, (60, 60))  # tamanho pequeno
 
@@ -197,7 +200,7 @@ def gameplay(tela):
     passaro_angulo_velocidade = 0.02  # velocidade do movimento circular
 
     # Player
-    player_rect = porquinho_img.get_rect(midbottom=(tela.get_width()//2, tela.get_height() - 70))
+    player_rect = porquinho_img.get_rect(midbottom=(tela.get_width()//2, tela.get_height() - 90))
     player_speed = 10
 
     # Listas de itens e obstáculos
@@ -359,17 +362,74 @@ def gameplay(tela):
 
         # Fim de jogo
         if vidas <= 0:
+            registrar_resultado(nomeJogador, score)
+            # Fundo escurecido
             s = pygame.Surface((tela.get_width(), tela.get_height()), pygame.SRCALPHA)
             s.fill((0, 0, 0, 180))
             tela.blit(s, (0, 0))
 
+            # Título "Fim de jogo!"
             fonte_fim = carregarFonte(72)
             texto_fim = fonte_fim.render("Fim de jogo!", True, (255, 0, 0))
-            tela.blit(texto_fim, (tela.get_width()//2 - texto_fim.get_width()//2,
-                                tela.get_height()//2 - texto_fim.get_height()//2))
+            texto_fim_rect = texto_fim.get_rect(center=(tela.get_width()//2, 150))  # Mais acima
+            tela.blit(texto_fim, texto_fim_rect)
+
+            # Exibe tabela de últimos resultados
+            registros = ler_ultimos_registros()
+            fonte_registro = carregarFonte(18)
+            linhas_visiveis = len(registros)
+            largura_tabela = 500
+            altura_linha = 35
+            altura_tabela = 40 + (linhas_visiveis + 1) * altura_linha + 20
+
+
+            x_tabela = (tela.get_width() - largura_tabela) // 2
+            y_tabela = texto_fim_rect.bottom + 30
+
+            # Fundo da tabela com transparência e borda
+            tabela_surface = pygame.Surface((largura_tabela, altura_tabela), pygame.SRCALPHA)
+            tabela_surface.fill((0, 0, 0, 180))  # Fundo preto semi-transparente
+            pygame.draw.rect(tabela_surface, (255, 255, 255), tabela_surface.get_rect(), 2, border_radius=10)
+
+            # Cabeçalho
+            cabecalho_font = carregarFonte(20)
+            cabecalho_texto = cabecalho_font.render("Últimos 5 Jogos", True, (255, 255, 0))
+            tabela_surface.blit(cabecalho_texto, (largura_tabela//2 - cabecalho_texto.get_width()//2, 10))
+
+            # Títulos das colunas
+            col_font = carregarFonte(16)
+            col_nomes = ["Nome", "Pontos", "Hora"]
+            col_x = [30, 220, 370]
+
+            for i, titulo in enumerate(col_nomes):
+                txt = col_font.render(titulo, True, (200, 200, 200))
+                tabela_surface.blit(txt, (col_x[i], 40))
+
+            # Registros
+            for i, (nome, pontos, hora) in enumerate(registros):
+                y_linha = 40 + altura_linha + i * altura_linha
+                linha_vals = [nome, pontos, hora]
+                for j, val in enumerate(linha_vals):
+                    txt = col_font.render(val, True, (255, 255, 255))
+                    tabela_surface.blit(txt, (col_x[j], y_linha))
+
+            # Blita tabela na tela
+            tela.blit(tabela_surface, (x_tabela, y_tabela))
             pygame.display.flip()
-            pygame.time.delay(3000)
+
+            # Espera interação do usuário para continuar ou fechar
+            esperando = True
+            while esperando:
+                for evento in pygame.event.get():
+                    if evento.type == pygame.QUIT:
+                        esperando = False
+                    if evento.type == pygame.KEYDOWN:
+                        if evento.key in [pygame.K_ESCAPE, pygame.K_RETURN, pygame.K_SPACE]:
+                            esperando = False
+
             rodando = False
+
+
 
 
 
@@ -383,11 +443,7 @@ def main():
 
     pygame.mixer.music.stop()
 
-    gameplay(tela)
-
-    pygame.quit()
-    sys.exit()
-
+    gameplay(tela, nomeJogador)
 
 if __name__ == "__main__":
     main()
