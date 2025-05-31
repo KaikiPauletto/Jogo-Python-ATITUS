@@ -170,6 +170,11 @@ def telaDeBoasVindas(tela, nomeJogador):
 def gameplay(tela, nomeJogador):
     global musicaAtiva
     clock = pygame.time.Clock()
+    frames_passados = 0
+    dificuldade_nivel = 1
+    tempo_obstaculo_contador = 0
+    intervalo_spawn_obstaculo = 90  # valor inicial
+    quantidade_martelos = 1
 
     # No começo da função gameplay, crie a fonte pequena:
     fonte_pequena = pygame.font.SysFont("arial", 16)  # Fonte menor para a mensagem
@@ -234,6 +239,38 @@ def gameplay(tela, nomeJogador):
 
     while rodando:
         clock.tick(60)
+        frames_passados += 1
+
+        # A cada 10 segundos (600 frames), aumentar a dificuldade
+        if frames_passados % 900 == 0:
+            dificuldade_nivel += 1
+            print(f"Dificuldade aumentada: Nível {dificuldade_nivel}")
+            if intervalo_spawn_obstaculo > 30:
+                intervalo_spawn_obstaculo -= 5
+            if quantidade_martelos < 3:
+                quantidade_martelos += 1
+
+
+
+            # Aumenta a velocidade dos martelos, até um limite
+            if velocidade_obstaculo < 20:
+                velocidade_obstaculo += 1
+
+            # Diminui o tempo entre spawns (aumentando frequência), até limite mínimo
+            if tempo_spawn_obstaculo > 30:
+                tempo_spawn_obstaculo -= 5
+        
+        tempo_obstaculo_contador += 1
+        if tempo_obstaculo_contador > intervalo_spawn_obstaculo:
+            tempo_obstaculo_contador = 0
+
+            for _ in range(quantidade_martelos):
+                x_pos = random.randint(0, tela.get_width() - 50)
+                rect = martelo_img.get_rect(topleft=(x_pos, -50))
+                mask = pygame.mask.from_surface(martelo_img)
+                obstaculos.append({"rect": rect, "mask": mask})
+
+
         for evento in pygame.event.get():
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_SPACE:
@@ -287,14 +324,6 @@ def gameplay(tela, nomeJogador):
 
             itens.append({'rect': rect, 'tipo': tipo, 'imagem': img, 'valor': valor})
 
-        # Spawn de obstáculos (a cada 1.5s)
-        tempo_spawn_obstaculo += 1
-        if tempo_spawn_obstaculo > 90:
-            tempo_spawn_obstaculo = 0
-            x_pos = random.randint(0, tela.get_width() - 50)
-            rect = martelo_img.get_rect(topleft=(x_pos, -50))
-            obstaculos.append(rect)
-
         # Atualiza posição dos itens
         for item in itens[:]:
             item['rect'].y += velocidade_item
@@ -306,13 +335,15 @@ def gameplay(tela, nomeJogador):
 
         # Atualiza posição dos obstáculos
         for obs in obstaculos[:]:
-            obs.y += velocidade_obstaculo
-            if hitbox_reduzida(obs).colliderect(hitbox_reduzida(player_rect, 20, 10)):
+            obs["rect"].y += velocidade_obstaculo
+            offset = (obs["rect"].x - player_rect.x, obs["rect"].y - player_rect.y)
+            if pygame.mask.from_surface(porquinho_img).overlap(obs["mask"], offset):
                 vidas -= 1
                 dano_tomado = 12
                 obstaculos.remove(obs)
-            elif obs.top > tela.get_height():
+            elif obs["rect"].top > tela.get_height():
                 obstaculos.remove(obs)
+
 
         # Desenha player
         tela.blit(porquinho_img, player_rect)
@@ -335,7 +366,8 @@ def gameplay(tela, nomeJogador):
 
         # Desenha obstáculos
         for obs in obstaculos:
-            tela.blit(martelo_img, obs)
+            tela.blit(martelo_img, obs["rect"])
+
 
         # Interface (pontuação e vidas)
         score_text = fonte.render(f"Pontuação: {score:.1f}", True, (0, 0, 0))
