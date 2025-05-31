@@ -52,3 +52,15 @@ def desenhar_botoes_som(tela, som_ativo, posicao=(920, 20)):
     retangulo = icone.get_rect(topleft=posicao)
     tela.blit(icone, retangulo)
     return retangulo
+
+def hitbox_reduzida(rect, reducao_x=10, reducao_y=10):
+    nova_largura = max(1, rect.width - reducao_x)
+    nova_altura = max(1, rect.height - reducao_y)
+    nova_x = rect.x + reducao_x // 2
+    nova_y = rect.y + reducao_y // 2
+    return pygame.Rect(nova_x, nova_y, nova_largura, nova_altura)
+
+
+
+
+
