@@ -6,7 +6,6 @@ import math
 from Recursos.Functions import iniciarJanela, carregarFonte, branco, preto, render_text_wrapped, desenhar_botoes_som
 from Recursos.Functions import hitbox_reduzida
 from Recursos.Functions import pausar_jogo
-from Recursos.Functions import registrar_resultado
 from Recursos.Functions import registrar_resultado, ler_ultimos_registros
 from Recursos.Functions import interacao_por_voz
 
@@ -15,6 +14,10 @@ from Recursos.Functions import interacao_por_voz
 
 pygame.init()
 pygame.mixer.init()
+
+icone_janela = pygame.image.load("Recursos/imagens/Icone-removebg-preview.png")
+pygame.display.set_icon(icone_janela)
+
 
 musicaAtiva = True
 pygame.mixer.music.load("Recursos/sons/Trilha sonora.mp3")
@@ -97,11 +100,9 @@ def telaInicial(tela):
         texto = fonteInput.render(nomeJogador, True, preto)
         tela.blit(texto, (inputBox.x + 10, inputBox.y + 5))
 
-        # Botão de som
         desenhar_botoes_som(tela, musicaAtiva)
 
         pygame.display.flip()
-
 
 def telaDeBoasVindas(tela, nomeJogador):
     global musicaAtiva
@@ -132,7 +133,7 @@ def telaDeBoasVindas(tela, nomeJogador):
             musicaAtiva = verificarCliqueSom(evento, musicaAtiva)
             if evento.type == pygame.MOUSEBUTTONDOWN:
                 if botaoStart.collidepoint(evento.pos):
-                    return  # Sai para iniciar a gameplay
+                    return  
 
         tela.blit(fundo, (0, 0))
 
@@ -161,23 +162,27 @@ def telaDeBoasVindas(tela, nomeJogador):
         textoBotaoPos = textoBotao.get_rect(center=botaoStart.center)
         tela.blit(textoBotao, textoBotaoPos)
 
-        # Botão de som
         desenhar_botoes_som(tela, musicaAtiva)
 
         pygame.display.flip()
 
 
-def gameplay(tela, nomeJogador):
+def gameplay(tela, nomeJogador, fala_ao_perder=True):
     global musicaAtiva
     clock = pygame.time.Clock()
+
+    pygame.mixer.music.load("Recursos/sons/Pou music ost - ConnectCliff JumpCliff DashJet Pou.mp3")
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.play(-1)
+
     frames_passados = 0
     dificuldade_nivel = 1
     tempo_obstaculo_contador = 0
-    intervalo_spawn_obstaculo = 90  # valor inicial
+    intervalo_spawn_obstaculo = 90  
     quantidade_martelos = 1
 
-    # No começo da função gameplay, crie a fonte pequena:
-    fonte_pequena = pygame.font.SysFont("arial", 16)  # Fonte menor para a mensagem
+    
+    fonte_pequena = pygame.font.SysFont("arial", 16)  
 
     # Carregar imagens
     porquinho_img = pygame.image.load("Recursos/imagens/Porquinho.png").convert_alpha()
@@ -198,21 +203,21 @@ def gameplay(tela, nomeJogador):
     fundo = pygame.transform.scale(fundoOriginal, (tela.get_width(), tela.get_height()))
     passaro_img = pygame.transform.scale(passaro_img, (60, 60))  # tamanho pequeno
 
-    # Centro do círculo onde o passarinho vai voar
+    
     passaro_centro_x = tela.get_width() // 2
-    passaro_centro_y = 150  # um pouco no topo da tela, ajusta depois se quiser
+    passaro_centro_y = 150  
 
-    passaro_raio = 100  # raio do círculo do voo
-    passaro_angulo = 0  # ângulo inicial
-    passaro_angulo_velocidade = 0.02  # velocidade do movimento circular
+    passaro_raio = 100  
+    passaro_angulo = 0  
+    passaro_angulo_velocidade = 0.02  
 
     # Player
     player_rect = porquinho_img.get_rect(midbottom=(tela.get_width()//2, tela.get_height() - 90))
     player_speed = 10
 
     # Listas de itens e obstáculos
-    itens = []  # cada item: dict com 'rect', 'tipo', 'imagem', 'valor'
-    obstaculos = []  # cada obstáculo: rect
+    itens = []  
+    obstaculos = []  
 
     # Velocidades de queda
     velocidade_item = 5
@@ -241,7 +246,7 @@ def gameplay(tela, nomeJogador):
         clock.tick(60)
         frames_passados += 1
 
-        # A cada 10 segundos (600 frames), aumentar a dificuldade
+        # Dificuldade
         if frames_passados % 900 == 0:
             dificuldade_nivel += 1
             print(f"Dificuldade aumentada: Nível {dificuldade_nivel}")
@@ -252,11 +257,10 @@ def gameplay(tela, nomeJogador):
 
 
 
-            # Aumenta a velocidade dos martelos, até um limite
+            
             if velocidade_obstaculo < 20:
                 velocidade_obstaculo += 1
 
-            # Diminui o tempo entre spawns (aumentando frequência), até limite mínimo
             if tempo_spawn_obstaculo > 30:
                 tempo_spawn_obstaculo -= 5
         
@@ -298,7 +302,7 @@ def gameplay(tela, nomeJogador):
         if keys[pygame.K_RIGHT] and player_rect.right < tela.get_width():
             player_rect.x += player_speed
 
-        # Spawn de itens (a cada ~1s)
+        # Spawn de itens
         tempo_spawn_item += 1
         if tempo_spawn_item > 60:
             tempo_spawn_item = 0
@@ -344,85 +348,70 @@ def gameplay(tela, nomeJogador):
             elif obs["rect"].top > tela.get_height():
                 obstaculos.remove(obs)
 
-
-        # Desenha player
         tela.blit(porquinho_img, player_rect)
         if dano_tomado > 0:
             porquinho_tingido = porquinho_img.copy()
-            # Pinta os pixels visíveis da imagem com vermelho mantendo a transparência
             tint_surface = pygame.Surface(porquinho_img.get_size(), pygame.SRCALPHA)
-            tint_surface.fill((255, 0, 0, 120))  # vermelho semi-transparente
+            tint_surface.fill((255, 0, 0, 120))  
             porquinho_tingido.blit(tint_surface, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
             tela.blit(porquinho_tingido, player_rect)
             dano_tomado -= 1
         else:
             tela.blit(porquinho_img, player_rect)
 
-
-
-        # Desenha itens
         for item in itens:
             tela.blit(item['imagem'], item['rect'])
 
-        # Desenha obstáculos
         for obs in obstaculos:
             tela.blit(martelo_img, obs["rect"])
 
-
-        # Interface (pontuação e vidas)
         score_text = fonte.render(f"Pontuação: {score:.1f}", True, (0, 0, 0))
         vidas_text = fonte.render(f"Vidas: {vidas}", True, (255, 0, 0))
         tela.blit(score_text, (10, 10))
         tela.blit(vidas_text, (10, 50))
 
-        # Botão de som
         desenhar_botoes_som(tela, musicaAtiva)
 
-        # Sol pulsante (círculo amarelo no canto superior direito)
         tempo += 0.05
         raio_sol = int(raio_base + amplitude * math.sin(tempo))
-        pos_sol = (tela.get_width() - 120, 100)  # Posição do sol com margem
+        pos_sol = (tela.get_width() - 120, 100)  
 
         pygame.draw.circle(tela, (255, 255, 0), pos_sol, raio_sol)
 
         tela.blit(passaro_img, passaro_rect)
 
         mensagem_pausa = "Press Space To Pause Game"
-        texto_pausa = fonte_pequena.render(mensagem_pausa, True, (0, 0, 0))  # cor preta, pode mudar
-        texto_rect = texto_pausa.get_rect(center=(tela.get_width() // 2, 65))  # 20 px do topo
+        texto_pausa = fonte_pequena.render(mensagem_pausa, True, (0, 0, 0))  
+        texto_rect = texto_pausa.get_rect(center=(tela.get_width() // 2, 65))  
         tela.blit(texto_pausa, texto_rect)
 
         pygame.display.flip()
 
         # Fim de jogo
         if vidas <= 0:
+            pygame.mixer.music.stop()
             registrar_resultado(nomeJogador, score)
-            # Fundo escurecido
+
             s = pygame.Surface((tela.get_width(), tela.get_height()), pygame.SRCALPHA)
             s.fill((0, 0, 0, 180))
             tela.blit(s, (0, 0))
 
-            # Título "Fim de jogo!"
             fonte_fim = carregarFonte(72)
             texto_fim = fonte_fim.render("Fim de jogo!", True, (255, 0, 0))
-            texto_fim_rect = texto_fim.get_rect(center=(tela.get_width()//2, 150))  # Mais acima
+            texto_fim_rect = texto_fim.get_rect(center=(tela.get_width()//2, 150))
             tela.blit(texto_fim, texto_fim_rect)
 
-            # Exibe tabela de últimos resultados
+            # Tabela
             registros = ler_ultimos_registros()
             fonte_registro = carregarFonte(18)
-            linhas_visiveis = len(registros)
-            largura_tabela = 500
             altura_linha = 35
-            altura_tabela = 40 + (linhas_visiveis + 1) * altura_linha + 20
-
-
+            largura_tabela = 500
+            altura_tabela = 40 + (len(registros) + 1) * altura_linha + 20
             x_tabela = (tela.get_width() - largura_tabela) // 2
             y_tabela = texto_fim_rect.bottom + 30
 
-            # Fundo da tabela com transparência e borda
             tabela_surface = pygame.Surface((largura_tabela, altura_tabela), pygame.SRCALPHA)
-            tabela_surface.fill((0, 0, 0, 180))  # Fundo preto semi-transparente
+            tabela_surface.fill((0, 0, 0, 180))
             pygame.draw.rect(tabela_surface, (255, 255, 255), tabela_surface.get_rect(), 2, border_radius=10)
 
             # Cabeçalho
@@ -430,7 +419,6 @@ def gameplay(tela, nomeJogador):
             cabecalho_texto = cabecalho_font.render("Últimos 5 Jogos", True, (255, 255, 0))
             tabela_surface.blit(cabecalho_texto, (largura_tabela//2 - cabecalho_texto.get_width()//2, 10))
 
-            # Títulos das colunas
             col_font = carregarFonte(16)
             col_nomes = ["Nome", "Pontos", "Hora"]
             col_x = [30, 220, 370]
@@ -439,50 +427,105 @@ def gameplay(tela, nomeJogador):
                 txt = col_font.render(titulo, True, (200, 200, 200))
                 tabela_surface.blit(txt, (col_x[i], 40))
 
-            # Registros
             for i, (nome, pontos, hora) in enumerate(registros):
                 y_linha = 40 + altura_linha + i * altura_linha
-                linha_vals = [nome, pontos, hora]
-                for j, val in enumerate(linha_vals):
-                    txt = col_font.render(val, True, (255, 255, 255))
+                for j, val in enumerate([nome, pontos, hora]):
+                    txt = col_font.render(str(val), True, (255, 255, 255))
                     tabela_surface.blit(txt, (col_x[j], y_linha))
 
-            # Blita tabela na tela
             tela.blit(tabela_surface, (x_tabela, y_tabela))
+
+            # Definições de tamanho e espaçamento
+            largura_jogar = 450
+            largura_fechar = 450
+            altura_botoes = 100
+            espaco_entre_botoes = 60
+
+            # Posições dos botões
+            botao_jogar = pygame.Rect(
+                tela.get_width() // 2 - largura_jogar - espaco_entre_botoes // 2,
+                y_tabela + altura_tabela + 40,
+                largura_jogar,
+                altura_botoes
+            )
+
+            botao_fechar = pygame.Rect(
+                tela.get_width() // 2 + espaco_entre_botoes // 2,
+                y_tabela + altura_tabela + 40,
+                largura_fechar,
+                altura_botoes
+            )
+
+            # Desenha os botões
+            pygame.draw.rect(tela, (0, 160, 0), botao_jogar, border_radius=12)
+            pygame.draw.rect(tela, (160, 0, 0), botao_fechar, border_radius=12)
+
+            # Textos nos botões
+            botao_font = carregarFonte(28)
+            texto_jogar = botao_font.render("Jogar Novamente", True, (255, 255, 255))
+            texto_fechar = botao_font.render("Fechar", True, (255, 255, 255))
+
+            tela.blit(texto_jogar, texto_jogar.get_rect(center=botao_jogar.center))
+            tela.blit(texto_fechar, texto_fechar.get_rect(center=botao_fechar.center))
+
+            # Mensagem acima dos botões
+            fonte_fallback = carregarFonte(20)
+            msg = fonte_fallback.render("Clique ou fale sua escolha:", True, (255, 255, 255))
+            tela.blit(msg, (tela.get_width() // 2 - msg.get_width() // 2, botao_jogar.top - 40))
+
             pygame.display.flip()
 
-            # Blita tabela na tela
-            tela.blit(tabela_surface, (x_tabela, y_tabela))
-            pygame.display.flip()
 
-            # 🔊 Fala e escuta o comando de voz logo após mostrar a tabela
-            acao = interacao_por_voz()
+            # Voz + Reconhecimento
+            import threading, pyttsx3, speech_recognition as sr
+            reconhecido = None
 
-            if acao == "fechar":
-                pygame.quit()
-                sys.exit()
-            elif acao == "reiniciar":
-                return "reiniciar"
-            else:
-                # fallback: esperar interação por tecla
-                fonte_fallback = carregarFonte(18)
-                msg = fonte_fallback.render("Comando não reconhecido. Pressione ESC ou ENTER para sair.", True, (255, 255, 255))
-                tela.blit(msg, (tela.get_width()//2 - msg.get_width()//2, y_tabela + altura_tabela + 20))
-                pygame.display.flip()
+            def falar():
+                engine = pyttsx3.init()
+                engine.setProperty("rate", 160)
+                engine.say("Você perdeu. Se deseja jogar novamente, fale jogar novamente. Se deseja sair, fale fechar.")
+                engine.runAndWait()
 
-                esperando = True
-                while esperando:
-                    for evento in pygame.event.get():
-                        if evento.type == pygame.QUIT:
-                            esperando = False
-                        if evento.type == pygame.KEYDOWN:
-                            if evento.key in [pygame.K_ESCAPE, pygame.K_RETURN, pygame.K_SPACE]:
-                                esperando = False
+            def escutar():
+                nonlocal reconhecido
+                r = sr.Recognizer()
+                with sr.Microphone() as source:
+                    try:
+                        r.adjust_for_ambient_noise(source)
+                        audio = r.listen(source, timeout=7)
+                        texto = r.recognize_google(audio, language="pt-BR").lower()
+                        if "fechar" in texto:
+                            reconhecido = "fechar"
+                        elif "jogar" in texto:
+                            reconhecido = "reiniciar"
+                    except:
+                        reconhecido = None
 
-            rodando = False
+            threading.Thread(target=falar).start()
+            threading.Thread(target=escutar).start()
 
+            # Espera interação
+            while True:
+                for evento in pygame.event.get():
+                    if evento.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    if evento.type == pygame.MOUSEBUTTONDOWN:
+                        if botao_jogar.collidepoint(evento.pos):
+                            return "reiniciar"
+                        if botao_fechar.collidepoint(evento.pos):
+                            pygame.quit()
+                            sys.exit()
+                    if evento.type == pygame.KEYDOWN:
+                        if evento.key == pygame.K_ESCAPE:
+                            pygame.quit()
+                            sys.exit()
 
-
+                if reconhecido == "fechar":
+                    pygame.quit()
+                    sys.exit()
+                elif reconhecido == "reiniciar":
+                    return "reiniciar"
 
 
 
