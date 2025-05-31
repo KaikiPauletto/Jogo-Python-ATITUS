@@ -8,6 +8,8 @@ from Recursos.Functions import hitbox_reduzida
 from Recursos.Functions import pausar_jogo
 from Recursos.Functions import registrar_resultado
 from Recursos.Functions import registrar_resultado, ler_ultimos_registros
+from Recursos.Functions import interacao_por_voz
+
 
 
 
@@ -417,17 +419,36 @@ def gameplay(tela, nomeJogador):
             tela.blit(tabela_surface, (x_tabela, y_tabela))
             pygame.display.flip()
 
-            # Espera interação do usuário para continuar ou fechar
-            esperando = True
-            while esperando:
-                for evento in pygame.event.get():
-                    if evento.type == pygame.QUIT:
-                        esperando = False
-                    if evento.type == pygame.KEYDOWN:
-                        if evento.key in [pygame.K_ESCAPE, pygame.K_RETURN, pygame.K_SPACE]:
+            # Blita tabela na tela
+            tela.blit(tabela_surface, (x_tabela, y_tabela))
+            pygame.display.flip()
+
+            # 🔊 Fala e escuta o comando de voz logo após mostrar a tabela
+            acao = interacao_por_voz()
+
+            if acao == "fechar":
+                pygame.quit()
+                sys.exit()
+            elif acao == "reiniciar":
+                return "reiniciar"
+            else:
+                # fallback: esperar interação por tecla
+                fonte_fallback = carregarFonte(18)
+                msg = fonte_fallback.render("Comando não reconhecido. Pressione ESC ou ENTER para sair.", True, (255, 255, 255))
+                tela.blit(msg, (tela.get_width()//2 - msg.get_width()//2, y_tabela + altura_tabela + 20))
+                pygame.display.flip()
+
+                esperando = True
+                while esperando:
+                    for evento in pygame.event.get():
+                        if evento.type == pygame.QUIT:
                             esperando = False
+                        if evento.type == pygame.KEYDOWN:
+                            if evento.key in [pygame.K_ESCAPE, pygame.K_RETURN, pygame.K_SPACE]:
+                                esperando = False
 
             rodando = False
+
 
 
 
@@ -436,14 +457,22 @@ def gameplay(tela, nomeJogador):
 def main():
     tela = iniciarJanela()
 
-    nomeJogador = telaInicial(tela)
-    print(f"Jogador: {nomeJogador}")
+    while True:
+        nomeJogador = telaInicial(tela)
+        print(f"Jogador: {nomeJogador}")
 
-    telaDeBoasVindas(tela, nomeJogador)
+        telaDeBoasVindas(tela, nomeJogador)
 
-    pygame.mixer.music.stop()
+        pygame.mixer.music.stop()
 
-    gameplay(tela, nomeJogador)
+        resultado = gameplay(tela, nomeJogador)
+
+        if resultado != "reiniciar":
+            break
+
+    pygame.quit()
+    sys.exit()
+
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,9 @@
 import pygame
 import datetime
 import sys
+import pyttsx3
+import speech_recognition as sr
+import time
 
 # Função que será usada várias vezes para carregar fontes
 def carregarFonte(tamanho=20):
@@ -118,6 +121,42 @@ def ler_ultimos_registros(caminho_log="log.dat", n=5):
     except FileNotFoundError:
         return []
 
+def interacao_por_voz():
+    # Inicializa o sintetizador de voz
+    engine = pyttsx3.init()
+    engine.say("Você perdeu. Se deseja fechar o jogo, fale FECHAR. Se deseja jogar novamente, fale JOGAR NOVAMENTE.")
+    engine.runAndWait()
+
+    # Aguarda um momento antes de começar a ouvir
+    print("Esperando para escutar...")
+    time.sleep(4.5)  # Tempo para o jogador se preparar
+
+    # Inicializa o reconhecedor de voz
+    recognizer = sr.Recognizer()
+    mic = sr.Microphone()
+
+    with mic as source:
+        print("Ouvindo agora...")
+        recognizer.adjust_for_ambient_noise(source)
+        try:
+            audio = recognizer.listen(source, timeout=5, phrase_time_limit=5)
+            comando = recognizer.recognize_google(audio, language="pt-BR")
+            print(f"RECONHECIDO (bruto): {comando}")
+            comando = comando.lower()
+
+            if "fechar" in comando:
+                return "fechar"
+            elif "jogar" in comando or "novamente" in comando:
+                return "reiniciar"
+
+            else:
+                return "desconhecido"
+        except sr.UnknownValueError:
+            return "desconhecido"
+        except sr.WaitTimeoutError:
+            return "tempo_esgotado"
+        except sr.RequestError:
+            return "erro"
 
 
 
