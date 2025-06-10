@@ -34,3 +34,7 @@ O jogo possui uma tela de boas-vindas, menu de inserção de nome, sistema de pa
 
 ---
 
+## Testador do jogo:
+- Nome: Luis Eduardo Brescansin Canal
+- RA: 1137999
+
